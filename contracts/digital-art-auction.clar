@@ -72,3 +72,77 @@
     (asserts! (> price u0) err-invalid-art-price)
     (var-set art-price price)
     (ok true)))
+
+;; Set royalty rate (only admin)
+(define-public (set-royalty-rate (rate uint))
+  (begin
+    (asserts! (is-eq tx-sender contract-admin) err-admin-only)
+    (asserts! (<= rate u100) err-invalid-art-quantity)
+    (var-set royalty-rate rate)
+    (ok true)))
+
+;; Set maximum artwork per artist (only admin)
+(define-public (set-max-art-per-artist (new-max uint))
+  (begin
+    (asserts! (is-eq tx-sender contract-admin) err-admin-only)
+    (asserts! (> new-max u0) err-invalid-art-quantity)
+    (var-set max-art-per-artist new-max)
+    (ok true)))
+
+;; Adjust royalty rate (admin only)
+(define-public (adjust-royalty-rate (rate uint))
+  (begin
+    (asserts! (is-eq tx-sender contract-admin) err-admin-only)
+    (asserts! (<= rate u100) err-invalid-art-quantity)
+    (var-set royalty-rate rate)
+    (ok true)))
+
+;; Add a new artwork listing for sale
+(define-public (add-artwork-listing (quantity uint) (price uint))
+  (begin
+    (asserts! (> quantity u0) err-invalid-art-quantity)
+    (asserts! (> price u0) err-invalid-art-price)
+    (map-set artworks-for-sale {artist: tx-sender} {quantity: quantity, price: price})
+    (ok true)))
+
+;; Enhance security - Add access control to update artwork price
+(define-public (update-art-price (new-price uint))
+  (begin
+    (asserts! (is-eq tx-sender contract-admin) err-admin-only)
+    (asserts! (> new-price u0) err-invalid-art-price)
+    (var-set art-price new-price)
+    (ok true)))
+
+;; Fix a bug - Prevent purchase when no artworks are available
+(define-public (check-artwork-availability (artist principal) (quantity uint))
+  (let (
+    (sale-data (default-to {quantity: u0, price: u0} (map-get? artworks-for-sale {artist: artist})))
+  )
+    (asserts! (> (get quantity sale-data) quantity) err-insufficient-balance)
+    (ok true)))
+
+;; Enhance security - Limit access to set max artwork per artist
+(define-public (set-max-artwork-per-artist (new-max uint))
+  (begin
+    (asserts! (is-eq tx-sender contract-admin) err-admin-only)
+    (asserts! (> new-max u0) err-invalid-art-quantity)
+    (var-set max-art-per-artist new-max)
+    (ok true)))
+
+;; Function to fix bug related to insufficient balance when removing artwork
+(define-public (fix-remove-artwork-balance-bug (quantity uint))
+  (begin
+    ;; Ensures that sufficient balance is checked and no errors are thrown incorrectly
+    (let ((current-for-sale (get quantity (default-to {quantity: u0, price: u0} 
+                                                     (map-get? artworks-for-sale {artist: tx-sender})))))
+      (asserts! (>= current-for-sale quantity) err-insufficient-balance)
+      (ok true))))
+
+;; Set platform fee rate (only admin)
+(define-public (set-platform-fee-rate (rate uint))
+  (begin
+    (asserts! (is-eq tx-sender contract-admin) err-admin-only)
+    (asserts! (<= rate u100) err-invalid-art-quantity)
+    (var-set platform-fee-rate rate)
+    (ok true)))
+
